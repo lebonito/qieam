@@ -17,11 +17,16 @@ import java.util.Set;
 public class Game implements Serializable {
 
     @Id @GeneratedValue
-    private int id;
+    private Long id;
+
     @Column
     private String title;
+
     @Column
     private String cover;
+
     @ManyToMany(mappedBy = "games")
     private Set<Users> users;
+
+    private boolean isInStore;
 }
