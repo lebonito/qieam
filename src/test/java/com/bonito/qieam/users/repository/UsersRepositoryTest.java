@@ -1,6 +1,8 @@
 package com.bonito.qieam.users.repository;
 
+import com.bonito.qieam.TestUtils;
 import com.bonito.qieam.games.domain.Game;
+import com.bonito.qieam.games.repository.GameRepository;
 import com.bonito.qieam.users.domain.Users;
 import org.jeasy.random.EasyRandom;
 import org.jeasy.random.EasyRandomParameters;
@@ -13,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.util.HashSet;
 import java.util.List;
 
 @ExtendWith(SpringExtension.class)
@@ -21,6 +24,8 @@ class UsersRepositoryTest {
 
     @Autowired
     private UsersRepository usersRepository;
+    @Autowired
+    private GameRepository gameRepository;
 
     private EasyRandom easyRandom;
     @BeforeEach
@@ -46,22 +51,26 @@ class UsersRepositoryTest {
 
     @Test
     void getAllUsers() {
-        List<Users> usersList = easyRandom.objects(Users.class, 5).toList();
-        usersRepository.saveAll(usersList);
+        Game game1 = Game.builder().title("title1").cover("cover1").build();
+        Game game2 = Game.builder().title("title2").cover("cover2").build();
+        List<Game> games = gameRepository.saveAll(List.of(game1, game2));
+        Users user = Users.builder().username("user1").email("email1").games(new HashSet<>(games)).build();
+        usersRepository.save(user);
 
         List<Users> all = usersRepository.findAll();
-        Assertions.assertEquals(5, all.size());
-        Assertions.assertTrue(all.containsAll(usersList));
+        Assertions.assertEquals(1, all.size());
+        Assertions.assertEquals(2, all.get(0).getGames().size());
     }
 
     @Test
     void deletUser() {
-        List<Users> usersList = easyRandom.objects(Users.class, 4).toList();
-        usersRepository.saveAll(usersList);
+        Game game1 = Game.builder().title("title1").cover("cover1").build();
+        Game game2 = Game.builder().title("title2").cover("cover2").build();
+        List<Game> games = gameRepository.saveAll(List.of(game1, game2));
+        Users user = Users.builder().username("user1").email("email1").games(new HashSet<>(games)).build();
+        usersRepository.delete(user);
 
-        usersRepository.delete(usersList.get(1));
         List<Users> all = usersRepository.findAll();
-        Assertions.assertEquals(3, all.size());
-        Assertions.assertTrue(usersList.containsAll(all));
+        Assertions.assertTrue(all.isEmpty());
     }
 }

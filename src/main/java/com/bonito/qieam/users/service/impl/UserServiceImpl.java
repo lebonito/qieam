@@ -11,8 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -27,31 +29,52 @@ public class UserServiceImpl implements UserService {
     private static final String USER_ID_DO_NOT_EXISTS = "L'identifiant %d de l'utilisateur n'existe pas.";
 
     @Override
-    public Users addUser(Users user) {
-        if (user == null)
+    @Transactional
+    public Set<Users> addUsers(Set<Users> usersSet) {
+        if (usersSet.isEmpty() || usersSet.contains(null))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "L'utilisateur ne peut être null.");
-        return usersRepository.save(user);
+        return new HashSet<>(usersRepository.saveAll(usersSet));
     }
 
     @Override
-    public Users addFriends(Long idUser, List<Users> friends) {
+    @Transactional
+    public Users addFriends(Long idUser, Set<Users> friends) {
         Users user = usersRepository.findById(idUser).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 String.format(USER_ID_DO_NOT_EXISTS, idUser)));
+        if (!friends.stream().allMatch(friend -> usersRepository.existsById(friend.getId()))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Ajout impossible car un ou plusieurs amis de la liste n'existe pas.");
+        }
+        if (friends.stream().anyMatch(friend -> user.getFriends().contains(friend))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Ajout impossible car l'utilisateur possède déjà un ou plusieurs amis de la liste.");
+        }
         user.addFriend(friends);
+
         return usersRepository.save(user);
     }
 
     @Override
-    public Users addGames(Long idUser, List<Game> games) {
+    @Transactional
+    public Users addGames(Long idUser, Set<Game> games) {
         Users user = usersRepository.findById(idUser).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 String.format(USER_ID_DO_NOT_EXISTS, idUser)));
+        if (!games.stream().allMatch(game -> gameRepository.existsById(game.getId()))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Ajout impossible car un ou plusieurs jeux de la liste n'existe pas.");
+        }
+        if (games.stream().anyMatch(game -> user.getGames().contains(game))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Ajout impossible car l'utilisateur possède déjà un ou plusieurs jeux de la liste.");
+        }
         user.addGames(games);
         return usersRepository.save(user);
     }
 
     @Override
-    public List<Users> findAllUser() {
-        return usersRepository.findAll();
+    public Set<Users> findAllUser() {
+        List<Users> all = usersRepository.findAll();
+        return new HashSet<>(all);
     }
 
     @Override
@@ -61,6 +84,23 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Users findAllGamesFromUserById(Long id) {
+        if (!usersRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(ID_DO_NOT_EXISTS, id));
+        }
+        return usersRepository.findAllGamesFromUserId(id).orElseThrow();
+    }
+
+    @Override
+    public Users findAllFriendsFromUserById(Long id) {
+        if (!usersRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(ID_DO_NOT_EXISTS, id));
+        }
+        return usersRepository.findAllFriendsFromUserId(id).orElseThrow();
+    }
+
+    @Override
+    @Transactional
     public void deleteUserById(Long id) {
         if(usersRepository.existsById(id)) {
             usersRepository.deleteById(id);
@@ -71,6 +111,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void removeFriendFromUserById(Long idUser, Long idFriend) {
         Users user = usersRepository.findById(idUser).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 String.format(USER_ID_DO_NOT_EXISTS, idUser)));
@@ -86,6 +127,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void removeGameFromUserById(Long idUser, Long idGame) {
         Users user = usersRepository.findById(idUser)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,

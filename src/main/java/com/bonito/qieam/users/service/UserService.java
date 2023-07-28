@@ -4,18 +4,23 @@ import com.bonito.qieam.games.domain.Game;
 import com.bonito.qieam.users.domain.Users;
 
 import java.util.List;
+import java.util.Set;
 
 public interface UserService {
 
-    Users addUser(Users user);
+    Set<Users> addUsers(Set<Users> usersSet);
 
-    Users addFriends(Long idUser, List<Users> friends);
+    Users addFriends(Long idUser, Set<Users> friends);
 
-    Users addGames(Long idUser, List<Game> games);
+    Users addGames(Long idUser, Set<Game> games);
 
-    List<Users> findAllUser();
+    Set<Users> findAllUser();
 
     Users findUserById(Long id);
+
+    Users findAllGamesFromUserById(Long id);
+
+    Users findAllFriendsFromUserById(Long id);
 
     void deleteUserById(Long id);
 

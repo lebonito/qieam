@@ -36,7 +36,7 @@ class GameRepositoryTest {
         Game save = gameRepository.save(game);
 
         Assertions.assertNotNull(save);
-        Assertions.assertEquals(1, save.getId());
+        Assertions.assertNotEquals(0, save.getId());
         Assertions.assertEquals(game.getTitle(), save.getTitle());
         Assertions.assertEquals(game.getCover(), save.getCover());
     }

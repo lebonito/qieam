@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -26,7 +25,7 @@ public class Users implements Serializable {
     @Column
     private String email;
 
-    @ManyToMany(cascade = CascadeType.PERSIST)
+    @ManyToMany
     @JoinTable(name = "users_games", joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "game_id"))
     private Set<Game> games;
@@ -36,13 +35,13 @@ public class Users implements Serializable {
             inverseJoinColumns = @JoinColumn(name = "friend_id"))
     private Set<Users> friends;
 
-    @ManyToMany()
+    @ManyToMany
     @JoinTable(name = "users_friends", joinColumns = @JoinColumn(name = "friend_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id"))
     private Set<Users> friendsOf;
 
 
-    public void addGames(List<Game> games) {
+    public void addGames(Set<Game> games) {
         this.getGames().addAll(games);
     }
 
@@ -50,7 +49,7 @@ public class Users implements Serializable {
         this.getGames().remove(game);
     }
 
-    public void addFriend(List<Users> users) {
+    public void addFriend(Set<Users> users) {
         this.getFriends().addAll(users);
     }
 

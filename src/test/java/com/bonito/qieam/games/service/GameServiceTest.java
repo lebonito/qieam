@@ -12,10 +12,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,18 +30,37 @@ class GameServiceTest {
     private GameServiceImpl gameService;
 
     @Test
-    void addGame() {
-        Game game = new EasyRandom().nextObject(Game.class);
-        when(gameRepository.save(any(Game.class))).thenReturn(game);
-        gameService.addGame(game);
-        verify(gameRepository, times(1)).save(game);
+    void addGames() {
+        Set<Game> games = new EasyRandom().objects(Game.class, 3).collect(Collectors.toSet());
+        when(gameRepository.saveAll(anySet())).thenReturn(games.stream().toList());
+        gameService.addGames(games);
+        verify(gameRepository, times(1)).saveAll(games);
     }
 
     @Test
-    void addNullGame() {
+    void addEmptySetOfGame() {
+        HashSet<Game> set = new HashSet<>();
         ResponseStatusException responseStatusException = Assertions.assertThrows(ResponseStatusException.class,
-                () -> gameService.addGame(null));
+                () -> gameService.addGames(set));
         Assertions.assertEquals("Le jeu ne peut être null.", responseStatusException.getReason());
+    }
+
+    @Test
+    void addSetOfGameWithNullGame() {
+        HashSet<Game> set = new HashSet<>();
+        set.add(null);
+        ResponseStatusException responseStatusException = Assertions.assertThrows(ResponseStatusException.class,
+                () -> gameService.addGames(set));
+        Assertions.assertEquals("Le jeu ne peut être null.", responseStatusException.getReason());
+    }
+
+    @Test
+    void addGamesToStore() {
+        Set<Game> games = new EasyRandom().objects(Game.class, 3).collect(Collectors.toSet());
+        when(gameRepository.saveAll(anySet())).thenReturn(games.stream().toList());
+        when(gameRepository.existsById(anyLong())).thenReturn(true);
+        gameService.addGamesToStore(games);
+        verify(gameRepository, times(1)).saveAll(games);
     }
 
     @Test

@@ -14,9 +14,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -34,24 +36,34 @@ class UserServiceTest {
     private UserServiceImpl userService;
 
     @Test
-    void addUser() {
-        Users users = new EasyRandom().nextObject(Users.class);
-        when(usersRepository.save(any(Users.class))).thenReturn(users);
-        userService.addUser(users);
-        verify(usersRepository, times(1)).save(users);
+    void addUsers() {
+        Set<Users> users = new EasyRandom().objects(Users.class, 6).collect(Collectors.toSet());
+        when(usersRepository.saveAll(anySet())).thenReturn(users.stream().toList());
+        userService.addUsers(users);
+        verify(usersRepository, times(1)).saveAll(users);
     }
 
     @Test
-    void addNullUser() {
+    void addSetOfNullUser() {
+        HashSet<Users> set = new HashSet<>();
+        set.add(null);
         ResponseStatusException responseStatusException = Assertions.assertThrows(ResponseStatusException.class,
-                () -> userService.addUser(null));
+                () -> userService.addUsers(set));
+        Assertions.assertEquals("L'utilisateur ne peut être null.", responseStatusException.getReason());
+    }
+
+    @Test
+    void addEmptySetOfUser() {
+        Set<Users> objects = Set.of();
+        ResponseStatusException responseStatusException = Assertions.assertThrows(ResponseStatusException.class,
+                () -> userService.addUsers(objects));
         Assertions.assertEquals("L'utilisateur ne peut être null.", responseStatusException.getReason());
     }
 
     @Test
     void getAllUsers() {
-        List<Users> users = new EasyRandom().objects(Users.class, 5).toList();
-        when(usersRepository.findAll()).thenReturn(users);
+        Set<Users> users = new EasyRandom().objects(Users.class, 5).collect(Collectors.toSet());
+        when(usersRepository.findAll()).thenReturn(users.stream().toList());
         userService.findAllUser();
         verify(usersRepository, times(1)).findAll();
     }
@@ -82,45 +94,58 @@ class UserServiceTest {
 
     @Test
     void getAllFriendsFromUser() {
+        Users users = new EasyRandom().nextObject(Users.class);
+        when(usersRepository.existsById(anyLong())).thenReturn(true);
+        when(usersRepository.findAllFriendsFromUserId(anyLong())).thenReturn(Optional.ofNullable(users));
+        userService.findAllFriendsFromUserById(2L);
+        verify(usersRepository, times(1)).findAllFriendsFromUserId(2L);
+    }
 
-        Users user = new EasyRandom().nextObject(Users.class);
-        when(usersRepository.findById(anyLong())).thenReturn(Optional.of(user));
-        userService.findUserById(2L);
-        verify(usersRepository, times(1)).findById(2L);
+    @Test
+    void getAllFriendsFromUserWithBadId() {
+        ResponseStatusException responseStatusException = Assertions.assertThrows(ResponseStatusException.class,
+                () -> userService.findAllFriendsFromUserById(2L));
+        Assertions.assertEquals("L'identifiant 2 n'existe pas.", responseStatusException.getReason());
+    }
 
+    @Test
+    void getAllGamesFromUser() {
+        Users users = new EasyRandom().nextObject(Users.class);
+        when(usersRepository.existsById(anyLong())).thenReturn(true);
+        when(usersRepository.findAllGamesFromUserId(anyLong())).thenReturn(Optional.ofNullable(users));
+        userService.findAllGamesFromUserById(2L);
+        verify(usersRepository, times(1)).findAllGamesFromUserId(2L);
+    }
+
+    @Test
+    void getAllGamesFromUserWithBadId() {
+        ResponseStatusException responseStatusException = Assertions.assertThrows(ResponseStatusException.class,
+                () -> userService.findAllGamesFromUserById(2L));
+        Assertions.assertEquals("L'identifiant 2 n'existe pas.", responseStatusException.getReason());
     }
 
     @Test
     void addGamesToUser() {
         Users user = new EasyRandom().nextObject(Users.class);
-        List<Game> gameList = new EasyRandom().objects(Game.class,4).toList();
+        Set<Game> gameList = new EasyRandom().objects(Game.class,4).collect(Collectors.toSet());
         when(usersRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
         when(usersRepository.save(any(Users.class))).thenReturn(user);
+        when(gameRepository.existsById(anyLong())).thenReturn(true);
         userService.addGames(1L, gameList);
         verify(usersRepository, times(1)).save(user);
     }
 
     @Test
     void addGamesToUserWithBadId() {
-        List<Game> gameList = new EasyRandom().objects(Game.class,4).toList();
+        Set<Game> gameList = new EasyRandom().objects(Game.class,4).collect(Collectors.toSet());
         ResponseStatusException responseStatusException = Assertions.assertThrows(ResponseStatusException.class,
                 () -> userService.addGames(1L, gameList));
         Assertions.assertEquals("L'identifiant 1 de l'utilisateur n'existe pas.", responseStatusException.getReason());
     }
 
     @Test
-    void addFriendsToUser() {
-        Users user = new EasyRandom().nextObject(Users.class);
-        List<Users> users = new EasyRandom().objects(Users.class,4).toList();
-        when(usersRepository.findById(anyLong())).thenReturn(Optional.ofNullable(user));
-        when(usersRepository.save(any(Users.class))).thenReturn(user);
-        userService.addFriends(1L, users);
-        verify(usersRepository, times(1)).save(user);
-    }
-
-    @Test
     void addFriendsToUserWithBadId() {
-        List<Users> users = new EasyRandom().objects(Users.class,4).toList();
+        Set<Users> users = new EasyRandom().objects(Users.class,4).collect(Collectors.toSet());
         ResponseStatusException responseStatusException = Assertions.assertThrows(ResponseStatusException.class,
                 () -> userService.addFriends(1L, users));
         Assertions.assertEquals("L'identifiant 1 de l'utilisateur n'existe pas.", responseStatusException.getReason());

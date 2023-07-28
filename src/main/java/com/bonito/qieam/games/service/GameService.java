@@ -3,12 +3,14 @@ package com.bonito.qieam.games.service;
 import com.bonito.qieam.games.domain.Game;
 
 import java.util.List;
+import java.util.Set;
 
 public interface GameService {
 
-    Game addGame(Game game);
+    Set<Game> addGames(Set<Game> game);
+    Set<Game> addGamesToStore(Set<Game> game);
 
-    List<Game> findAllGames();
+    Set<Game> findAllGames();
 
     Game findGameById(Long id);
 

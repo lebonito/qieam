@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -22,15 +25,29 @@ public class GameServiceImpl implements GameService {
 
     @Override
     @Transactional
-    public Game addGame(Game game) {
-        if (game == null)
+    public Set<Game> addGames(Set<Game> games) {
+        if (games.isEmpty() || games.contains(null))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le jeu ne peut être null.");
-        return gameRepository.save(game);
+        return new HashSet<>(gameRepository.saveAll(games));
     }
 
     @Override
-    public List<Game> findAllGames() {
-        return gameRepository.findAll();
+    @Transactional
+    public Set<Game> addGamesToStore(Set<Game> games) {
+        if (games.isEmpty() || games.contains(null)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le jeu ne peut être null.");
+        }
+
+        if (!games.stream().anyMatch(game -> gameRepository.existsById(game.getId()))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ajout impossible car un ou plusieurs jeux n'existe pas.");
+        }
+        games.forEach(game -> game.setInStore(true));
+        return new HashSet<>(gameRepository.saveAll(games));
+    }
+
+    @Override
+    public Set<Game> findAllGames() {
+        return new HashSet<>(gameRepository.findAll());
     }
 
     @Override
