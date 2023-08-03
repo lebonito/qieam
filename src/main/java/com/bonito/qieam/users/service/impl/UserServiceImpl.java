@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +34,33 @@ public class UserServiceImpl implements UserService {
     public Set<Users> addUsers(Set<Users> usersSet) {
         if (usersSet.isEmpty() || usersSet.contains(null))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "L'utilisateur ne peut être null.");
+        boolean anyGameMatch = usersSet.stream()
+                .anyMatch(users -> users.getGames().stream()
+                        .anyMatch(game -> !gameRepository.existsById(game.getId())));
+        if (anyGameMatch) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Un ou plusieurs jeux n'existent pas.");
+        }
+
+        boolean anyFriendMatch = usersSet.stream()
+                .anyMatch(users -> users.getFriends().stream()
+                        .anyMatch(friend -> !usersRepository.existsById(friend.getId())));
+
+        if (anyFriendMatch) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Un ou plusieurs amis n'existent pas.");
+        }
+        usersSet.forEach(users -> {
+            Set<Game> games = users.getGames().stream()
+                    .map(game -> gameRepository.findById(game.getId()).orElseThrow()).collect(Collectors.toSet());
+            users.getGames().clear();
+            users.getGames().addAll(games);
+        });
+
+        usersSet.forEach(users -> {
+            Set<Users> friends = users.getFriends().stream()
+                    .map(friend -> usersRepository.findById(friend.getId()).orElseThrow()).collect(Collectors.toSet());
+            users.getFriends().clear();
+            users.getFriends().addAll(friends);
+        });
         return new HashSet<>(usersRepository.saveAll(usersSet));
     }
 

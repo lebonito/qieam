@@ -39,6 +39,8 @@ class UserServiceTest {
     void addUsers() {
         Set<Users> users = new EasyRandom().objects(Users.class, 6).collect(Collectors.toSet());
         when(usersRepository.saveAll(anySet())).thenReturn(users.stream().toList());
+        when(usersRepository.existsById(anyLong())).thenReturn(true);
+        when(gameRepository.existsById(anyLong())).thenReturn(true);
         userService.addUsers(users);
         verify(usersRepository, times(1)).saveAll(users);
     }
